@@ -3,10 +3,12 @@
   "version": "1.0.0",
   "main": "index.ts",
   "dependencies": {
-    "@expo/log-box": "57.0.4",
+<<<<<<<<< Temporary merge branch 1
     "@thinksys/react-native-mediapipe": "^0.0.21",
+    "@expo/log-box": "57.0.4",
     "expo": "~57.0.30",
-    "expo-asset": "~57.0.20",
+    "expo-asset": "~57.0.20", 
+>>>>>>>>> Temporary merge branch 2
     "expo-status-bar": "~57.0.1",
     "expo-video": "~57.0.5",
     "react": "19.2.3",

@@ -1,4 +1,135 @@
-﻿import { useState } from 'react';
+<<<<<<<<< Temporary merge branch 1
+﻿import { StatusBar } from "expo-status-bar";
+import {useState} from "react";
+import {
+  Dimensions,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from "react-native";
+import { VideoView, useVideoPlayer } from 'expo-video';
+import {
+  RNMediapipe,
+  switchCamera
+} from "@thinksys/react-native-mediapipe";
+import { useCallback, useRef, useState } from "react";
+import { extractLandmarks } from "./src/utils/pose";
+import { Landmark, TrackingStatus } from "./src/types/pose";
+import { PushupState, updatePushup } from "./src/exercises/pushup";
+
+const { width, height } = Dimensions.get("window");
+
+export default function App() {
+  const [landmarks, setLandmarks] = useState<Landmark[]>([]);
+  const [status, setStatus] = useState<TrackingStatus>("searching");
+  const [repetitions, setRepetitions] = useState(0);
+  const [pushupState, setPushupState] =
+    useState<PushupState>("up");
+  const [elbowAngle, setElbowAngle] = useState<number | null>(null);
+
+  const pushupStateRef = useRef<PushupState>("up");
+  const repetitionsRef = useRef(0);
+
+  const handleLandmark = useCallback((data: unknown) => {
+    const nextLandmarks = extractLandmarks(data);
+
+    if (nextLandmarks.length === 0) {
+      setStatus("searching");
+      return;
+    }
+
+    setLandmarks(nextLandmarks);
+    setStatus("tracking");
+
+    const result = updatePushup(
+      nextLandmarks,
+      pushupStateRef.current,
+      repetitionsRef.current
+    );
+
+    pushupStateRef.current = result.state;
+    repetitionsRef.current = result.repetitions;
+
+    setPushupState(result.state);
+    setRepetitions(result.repetitions);
+
+    if (typeof result.primaryAngle === "number") {
+      setElbowAngle(result.primaryAngle);
+    }
+  }, []);
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <RNMediapipe
+        width={width}
+        height={height}
+        onLandmark={handleLandmark}
+        face={true}
+        leftArm={true}
+        rightArm={true}
+        leftWrist={true}
+        rightWrist={true}
+        torso={true}
+        leftLeg={true}
+        rightLeg={true}
+        leftAnkle={true}
+        rightAnkle={true}
+        frameLimit={25}
+      />
+
+      <View pointerEvents="none" style={styles.topPanel}>
+        <Text style={styles.title}>Motion Fitness Tracker</Text>
+        <Text style={styles.status}>
+          {status === "tracking"
+            ? `Tracking ${landmarks.length} body points`
+            : "Looking for a person..."}
+        </Text>
+
+        <View style={styles.statsRow}>
+          <View>
+            <Text style={styles.statLabel}>PUSH-UPS</Text>
+            <Text style={styles.statValue}>{repetitions}</Text>
+          </View>
+
+          <View>
+            <Text style={styles.statLabel}>ELBOW ANGLE</Text>
+            <Text style={styles.statValue}>
+              {elbowAngle === null
+                ? "--"
+                : `${Math.round(elbowAngle)}°`}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      <View pointerEvents="none" style={styles.stateBadge}>
+        <Text style={styles.stateText}>
+          {pushupState.toUpperCase()}
+        </Text>
+      </View>
+
+      <View style={styles.bottomPanel}>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={switchCamera}
+          style={styles.flipButton}
+        >
+          <Text style={styles.flipText}>Flip Camera</Text>
+        </TouchableOpacity>
+      </View>
+
+      <StatusBar style="light" />
+    </SafeAreaView>
+=========
+import { useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -12,12 +143,10 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { VideoView, useVideoPlayer } from 'expo-video';
-import TrackerScreen from './src/screens/TrackerScreen';
 
 type Mode = 'login' | 'signup';
 
 export default function App() {
-  const [signedIn, setSignedIn] = useState(false);
   const [mode, setMode] = useState<Mode>('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -48,17 +177,13 @@ export default function App() {
       }
     }
     // TODO: connect to your auth backend
-    setSignedIn(true);
+    Alert.alert(isSignup ? 'Signed up' : 'Logged in', email.trim());
   };
 
   const googleLogin = () => {
     // TODO: wire up Google auth (e.g. expo-auth-session) with your client IDs
     Alert.alert('Google login', 'Google sign-in is not configured yet.');
   };
-
-  if (signedIn) {
-    return <TrackerScreen />;
-  }
 
   return (
     <View style={styles.container}>
@@ -150,10 +275,12 @@ export default function App() {
       </KeyboardAvoidingView>
       <StatusBar style="light" />
     </View>
+>>>>>>>>> Temporary merge branch 2
   );
 }
 
 const styles = StyleSheet.create({
+<<<<<<<<< Temporary merge branch 1
   flex: { flex: 1 },
   container: { flex: 1, backgroundColor: '#000' },
   overlay: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.5)' },
@@ -199,3 +326,4 @@ const styles = StyleSheet.create({
   switchText: { color: '#ddd', textAlign: 'center', marginTop: 20 },
   switchLink: { color: '#ff8a5c', fontWeight: '700' },
 });
+>>>>>>>>> Temporary merge branch 2
