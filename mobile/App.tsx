@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -12,10 +12,12 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { VideoView, useVideoPlayer } from 'expo-video';
+import TrackerScreen from './src/screens/TrackerScreen';
 
 type Mode = 'login' | 'signup';
 
 export default function App() {
+  const [signedIn, setSignedIn] = useState(false);
   const [mode, setMode] = useState<Mode>('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -46,13 +48,17 @@ export default function App() {
       }
     }
     // TODO: connect to your auth backend
-    Alert.alert(isSignup ? 'Signed up' : 'Logged in', email.trim());
+    setSignedIn(true);
   };
 
   const googleLogin = () => {
     // TODO: wire up Google auth (e.g. expo-auth-session) with your client IDs
     Alert.alert('Google login', 'Google sign-in is not configured yet.');
   };
+
+  if (signedIn) {
+    return <TrackerScreen />;
+  }
 
   return (
     <View style={styles.container}>
