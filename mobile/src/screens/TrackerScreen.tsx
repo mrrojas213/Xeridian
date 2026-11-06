@@ -13,10 +13,7 @@ import {
   RNMediapipe,
   switchCamera
 } from "@thinksys/react-native-mediapipe";
-import { useCallback, useRef, useState } from "react";
-import { extractLandmarks } from "../utils/pose";
-import { Landmark, TrackingStatus } from "../types/pose";
-import { PushupState, updatePushup } from "../exercises/pushup";
+import { usePushupCounter } from "../hooks/usePushupCounter";
 
 const { width, height } = Dimensions.get("window");
 
@@ -25,43 +22,8 @@ const ComponentName = isAndroid ? "TsMediapipeViewManager" : "TsMediapipeView";
 const isLinked = UIManager.getViewManagerConfig(ComponentName) != null;
 
 export default function TrackerScreen({ onBack }: { onBack?: () => void }) {
-  const [landmarks, setLandmarks] = useState<Landmark[]>([]);
-  const [status, setStatus] = useState<TrackingStatus>("searching");
-  const [repetitions, setRepetitions] = useState(0);
-  const [pushupState, setPushupState] =
-    useState<PushupState>("up");
-  const [elbowAngle, setElbowAngle] = useState<number | null>(null);
-
-  const pushupStateRef = useRef<PushupState>("up");
-  const repetitionsRef = useRef(0);
-
-  const handleLandmark = useCallback((data: unknown) => {
-    const nextLandmarks = extractLandmarks(data);
-
-    if (nextLandmarks.length === 0) {
-      setStatus("searching");
-      return;
-    }
-
-    setLandmarks(nextLandmarks);
-    setStatus("tracking");
-
-    const result = updatePushup(
-      nextLandmarks,
-      pushupStateRef.current,
-      repetitionsRef.current
-    );
-
-    pushupStateRef.current = result.state;
-    repetitionsRef.current = result.repetitions;
-
-    setPushupState(result.state);
-    setRepetitions(result.repetitions);
-
-    if (typeof result.primaryAngle === "number") {
-      setElbowAngle(result.primaryAngle);
-    }
-  }, []);
+  const { reps, state, elbowAngle, status, landmarks, onLandmark } =
+    usePushupCounter();
 
   const handleSwitchCamera = () => {
     try {
@@ -103,7 +65,7 @@ export default function TrackerScreen({ onBack }: { onBack?: () => void }) {
       <RNMediapipe
         width={width}
         height={height}
-        onLandmark={handleLandmark}
+        onLandmark={onLandmark}
         face={true}
         leftArm={true}
         rightArm={true}
@@ -128,7 +90,7 @@ export default function TrackerScreen({ onBack }: { onBack?: () => void }) {
         <View style={styles.statsRow}>
           <View>
             <Text style={styles.statLabel}>PUSH-UPS</Text>
-            <Text style={styles.statValue}>{repetitions}</Text>
+            <Text style={styles.statValue}>{reps}</Text>
           </View>
 
           <View>
@@ -144,7 +106,7 @@ export default function TrackerScreen({ onBack }: { onBack?: () => void }) {
 
       <View pointerEvents="none" style={styles.stateBadge}>
         <Text style={styles.stateText}>
-          {pushupState.toUpperCase()}
+          {state.toUpperCase()}
         </Text>
       </View>
 
