@@ -67,3 +67,41 @@ export function extractLandmarks(data: any): Landmark[] {
           : undefined
     }));
 }
+// The 3D body positions (in metres) that the camera library sends as "worldLandmarks".
+// Elbow angles from these are not distorted by how the phone is angled, so we count with these.
+export function extractWorldLandmarks(data: any): Landmark[] {
+  const world = data?.worldLandmarks;
+
+  if (!Array.isArray(world)) {
+    return [];
+  }
+
+  return world
+    .filter(
+      (point: any) =>
+        point &&
+        typeof point.x === "number" &&
+        typeof point.y === "number" &&
+        typeof point.z === "number"
+    )
+    .map((point: any) => ({
+      x: point.x,
+      y: point.y,
+      z: point.z,
+      visibility: typeof point.visibility === "number" ? point.visibility : undefined,
+      presence: typeof point.presence === "number" ? point.presence : undefined
+    }));
+}
+
+// Android sends the tracking data as a JSON *string*; iOS sends an object. This turns
+// either into an object (or null if it cannot be read) so the rest of the code can stay the same.
+export function parseLandmarkEvent(data: unknown): any {
+  if (typeof data === "string") {
+    try {
+      return JSON.parse(data);
+    } catch {
+      return null;
+    }
+  }
+  return data ?? null;
+}
