@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { extractWorldLandmarks, extractLandmarks } from "./pose.ts";
+import { extractWorldLandmarks, extractLandmarks, parseLandmarkEvent } from "./pose.ts";
 import { updatePushup } from "../exercises/pushup.ts";
 
 test("reads worldLandmarks, ignores missing/bad data", () => {
@@ -19,4 +19,15 @@ test("a straight arm in world coordinates reads ~180 degrees and counts as up", 
   const r = updatePushup(lm, "up", 0);
   assert.equal(r.state, "up");
   assert.ok(Math.abs(r.primaryAngle - 180) < 1e-6);
+});
+
+test("Android sends a JSON string, iOS sends an object: both are read", () => {
+  const obj = { landmarks: [{ x: 0.1, y: 0.2, z: 0.3 }], worldLandmarks: [{ x: 1, y: 2, z: 3 }] };
+  for (const sent of [obj, JSON.stringify(obj)]) {
+    const data = parseLandmarkEvent(sent);
+    assert.equal(extractLandmarks(data).length, 1);
+    assert.equal(extractWorldLandmarks(data).length, 1);
+  }
+  assert.equal(extractLandmarks(parseLandmarkEvent("not json")).length, 0);
+  assert.equal(extractLandmarks(parseLandmarkEvent(undefined)).length, 0);
 });

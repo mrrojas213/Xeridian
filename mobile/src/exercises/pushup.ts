@@ -11,7 +11,17 @@ const RIGHT_ELBOW = 14;
 const RIGHT_WRIST = 16;
 
 const TOP_ANGLE = 145;
-const BOTTOM_ANGLE = 95;
+// 110 (was 95): MediaPipe reads a few degrees shallower than the true elbow angle, and in
+// our Fit3D check the count stayed correct for any bottom limit from 95 to 110.
+const BOTTOM_ANGLE = 110;
+
+// Average elbow angle (both arms) in degrees, or null if the arms are not in the data.
+export function elbowAngleOf(landmarks: Landmark[]): number | null {
+  if (landmarks.length <= RIGHT_WRIST) return null;
+  const left = angle(landmarks[LEFT_SHOULDER], landmarks[LEFT_ELBOW], landmarks[LEFT_WRIST]);
+  const right = angle(landmarks[RIGHT_SHOULDER], landmarks[RIGHT_ELBOW], landmarks[RIGHT_WRIST]);
+  return (left + right) / 2;
+}
 
 export function updatePushup(
   landmarks: Landmark[],

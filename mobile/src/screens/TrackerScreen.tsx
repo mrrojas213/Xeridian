@@ -9,21 +9,36 @@ import {
   UIManager,
   Platform
 } from "react-native";
-import {
-  RNMediapipe,
-  switchCamera
-} from "@thinksys/react-native-mediapipe";
 import { usePushupCounter } from "../hooks/usePushupCounter";
 
 const { width, height } = Dimensions.get("window");
 
+// Shows both elbow angles under the stats. Handy for testing: a screenshot at the bottom of
+// a pushup shows what the app sees. Set to false to hide it.
+const SHOW_DEBUG = true;
+const fmt = (a: number | null) => (a === null ? "--" : `${Math.round(a)}°`);
+
+// Load the camera library only if its native code exists. In Expo Go it does not, and
+// importing it normally would crash the whole app (including the login screen).
+let RNMediapipe: any = null;
+let switchCamera: (() => void) | null = null;
+try {
+  const mediapipe = require("@thinksys/react-native-mediapipe");
+  RNMediapipe = mediapipe.RNMediapipe;
+  switchCamera = mediapipe.switchCamera;
+} catch {
+  // Native module missing (Expo Go): the screen shows a short explanation instead.
+}
+
 const isAndroid = Platform.OS === "android";
 const ComponentName = isAndroid ? "TsMediapipeViewManager" : "TsMediapipeView";
-const isLinked = UIManager.getViewManagerConfig(ComponentName) != null;
+const isLinked = RNMediapipe != null && UIManager.getViewManagerConfig(ComponentName) != null;
 
 export default function TrackerScreen({ onBack }: { onBack?: () => void }) {
-  const { reps, state, elbowAngle, status, landmarks, onLandmark } =
-    usePushupCounter();
+  const {
+    reps, state, elbowAngle, status, landmarks, onLandmark,
+    flatAngle, worldAngle, lowAngle, eventInfo
+  } = usePushupCounter();
 
   const handleSwitchCamera = () => {
     try {
@@ -103,6 +118,15 @@ export default function TrackerScreen({ onBack }: { onBack?: () => void }) {
           </View>
         </View>
       </View>
+
+      {SHOW_DEBUG && (
+        <View pointerEvents="none" style={styles.debugPanel}>
+          <Text style={styles.debugText}>
+            3D {fmt(worldAngle)}   flat {fmt(flatAngle)}   lowest {fmt(lowAngle)}
+          </Text>
+          <Text style={styles.debugText}>{eventInfo}</Text>
+        </View>
+      )}
 
       <View pointerEvents="none" style={styles.stateBadge}>
         <Text style={styles.stateText}>
@@ -209,6 +233,20 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "700",
     marginTop: 2
+  },
+  debugPanel: {
+    position: "absolute",
+    top: 200,
+    alignSelf: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: "rgba(0, 0, 0, 0.68)"
+  },
+  debugText: {
+    color: "#8effff",
+    fontSize: 12,
+    fontWeight: "600"
   },
   stateBadge: {
     position: "absolute",

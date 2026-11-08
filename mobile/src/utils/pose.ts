@@ -92,3 +92,16 @@ export function extractWorldLandmarks(data: any): Landmark[] {
       presence: typeof point.presence === "number" ? point.presence : undefined
     }));
 }
+
+// Android sends the tracking data as a JSON *string*; iOS sends an object. This turns
+// either into an object (or null if it cannot be read) so the rest of the code can stay the same.
+export function parseLandmarkEvent(data: unknown): any {
+  if (typeof data === "string") {
+    try {
+      return JSON.parse(data);
+    } catch {
+      return null;
+    }
+  }
+  return data ?? null;
+}

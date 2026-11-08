@@ -29,8 +29,8 @@ const rep = (bottom, len = 40) =>
 test("5 full pushups count as 5", () => {
   assert.equal(run([160, 160, ...[1, 2, 3, 4, 5].flatMap(() => rep(60)), 160, 160]), 5);
 });
-test("half pushups (only down to 110) do not count", () => {
-  assert.equal(run([160, ...rep(110), ...rep(110), ...rep(110), 160]), 0);
+test("half pushups (only down to 120) do not count", () => {
+  assert.equal(run([160, ...rep(120), ...rep(120), ...rep(120), 160]), 0);
 });
 test("standing still with straight arms is 0", () => {
   assert.equal(run(Array(100).fill(165)), 0);
