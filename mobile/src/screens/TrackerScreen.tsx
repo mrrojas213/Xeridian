@@ -9,17 +9,14 @@ import {
   UIManager,
   Platform
 } from "react-native";
-import { usePushupCounter } from "../hooks/usePushupCounter";
+import { useState } from "react";
+import { useExerciseTracker } from "../hooks/useExerciseTracker";
+import { DetectedExercise } from "../exercises/classifier";
 
 const { width, height } = Dimensions.get("window");
 
-// Shows both elbow angles under the stats. Handy for testing: a screenshot at the bottom of
-// a pushup shows what the app sees. Set to false to hide it.
-const SHOW_DEBUG = true;
 const fmt = (a: number | null) => (a === null ? "--" : `${Math.round(a)}°`);
 
-// Load the camera library only if its native code exists. In Expo Go it does not, and
-// importing it normally would crash the whole app (including the login screen).
 let RNMediapipe: any = null;
 let switchCamera: (() => void) | null = null;
 try {
@@ -27,7 +24,7 @@ try {
   RNMediapipe = mediapipe.RNMediapipe;
   switchCamera = mediapipe.switchCamera;
 } catch {
-  // Native module missing (Expo Go): the screen shows a short explanation instead.
+  // Native module missing (Expo Go)
 }
 
 const isAndroid = Platform.OS === "android";
@@ -35,10 +32,18 @@ const ComponentName = isAndroid ? "TsMediapipeViewManager" : "TsMediapipeView";
 const isLinked = RNMediapipe != null && UIManager.getViewManagerConfig(ComponentName) != null;
 
 export default function TrackerScreen({ onBack }: { onBack?: () => void }) {
+  const [selectedMode, setSelectedMode] = useState<DetectedExercise | "auto">("auto");
+
   const {
-    reps, state, elbowAngle, status, landmarks, onLandmark,
-    flatAngle, worldAngle, lowAngle, eventInfo
-  } = usePushupCounter();
+    exercise,
+    reps,
+    state,
+    elbowAngle,
+    status,
+    landmarks,
+    onLandmark,
+    repsMap
+  } = useExerciseTracker(selectedMode);
 
   const handleSwitchCamera = () => {
     try {
@@ -94,39 +99,55 @@ export default function TrackerScreen({ onBack }: { onBack?: () => void }) {
         frameLimit={25}
       />
 
+      {/* Exercise Mode Selector */}
+      <View style={styles.modeRow}>
+        {(["auto", "pushup", "squat", "lunge"] as const).map(mode => (
+          <TouchableOpacity
+            key={mode}
+            style={[styles.modeBtn, selectedMode === mode && styles.modeBtnActive]}
+            onPress={() => setSelectedMode(mode)}
+          >
+            <Text style={[styles.modeText, selectedMode === mode && styles.modeTextActive]}>
+              {mode.toUpperCase()}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
       <View pointerEvents="none" style={styles.topPanel}>
         <Text style={styles.title}>Motion Fitness Tracker</Text>
         <Text style={styles.status}>
           {status === "tracking"
-            ? `Tracking ${landmarks.length} body points`
+            ? `Tracking ${landmarks.length} body points | Mode: ${selectedMode.toUpperCase()}`
             : "Looking for a person..."}
         </Text>
 
         <View style={styles.statsRow}>
           <View>
-            <Text style={styles.statLabel}>PUSH-UPS</Text>
-            <Text style={styles.statValue}>{reps}</Text>
+            <Text style={[styles.statLabel, exercise === "pushup" && styles.activeLabel]}>PUSH-UPS</Text>
+            <Text style={styles.statValue}>{repsMap.pushup}</Text>
           </View>
 
           <View>
-            <Text style={styles.statLabel}>ELBOW ANGLE</Text>
-            <Text style={styles.statValue}>
-              {elbowAngle === null
-                ? "--"
-                : `${Math.round(elbowAngle)}°`}
-            </Text>
+            <Text style={[styles.statLabel, exercise === "squat" && styles.activeLabel]}>SQUATS</Text>
+            <Text style={styles.statValue}>{repsMap.squat}</Text>
+          </View>
+
+          <View>
+            <Text style={[styles.statLabel, exercise === "lunge" && styles.activeLabel]}>LUNGES</Text>
+            <Text style={styles.statValue}>{repsMap.lunge}</Text>
           </View>
         </View>
       </View>
 
-      {SHOW_DEBUG && (
-        <View pointerEvents="none" style={styles.debugPanel}>
-          <Text style={styles.debugText}>
-            3D {fmt(worldAngle)}   flat {fmt(flatAngle)}   lowest {fmt(lowAngle)}
-          </Text>
-          <Text style={styles.debugText}>{eventInfo}</Text>
-        </View>
-      )}
+      <View pointerEvents="none" style={styles.debugPanel}>
+        <Text style={styles.debugText}>
+          TRACKING: {exercise.toUpperCase()}
+        </Text>
+        <Text style={styles.debugText}>
+          Angle: {fmt(elbowAngle)}
+        </Text>
+      </View>
 
       <View pointerEvents="none" style={styles.stateBadge}>
         <Text style={styles.stateText}>
@@ -199,9 +220,37 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
   },
+  modeRow: {
+    position: "absolute",
+    top: 45,
+    left: 20,
+    right: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    zIndex: 10,
+    gap: 8
+  },
+  modeBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center"
+  },
+  modeBtnActive: {
+    backgroundColor: "#a6ffff"
+  },
+  modeText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "700"
+  },
+  modeTextActive: {
+    color: "#000"
+  },
   topPanel: {
     position: "absolute",
-    top: 48,
+    top: 95,
     left: 20,
     right: 20,
     padding: 16,
@@ -220,7 +269,7 @@ const styles = StyleSheet.create({
   },
   statsRow: {
     flexDirection: "row",
-    gap: 36,
+    gap: 24,
     marginTop: 14
   },
   statLabel: {
@@ -228,20 +277,25 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700"
   },
+  activeLabel: {
+    color: "#8effff",
+    fontWeight: "800"
+  },
   statValue: {
     color: "#fff",
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "700",
     marginTop: 2
   },
   debugPanel: {
     position: "absolute",
-    top: 200,
+    top: 260,
     alignSelf: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
     borderRadius: 12,
-    backgroundColor: "rgba(0, 0, 0, 0.68)"
+    backgroundColor: "rgba(0, 0, 0, 0.68)",
+    alignItems: "center"
   },
   debugText: {
     color: "#8effff",
@@ -250,7 +304,7 @@ const styles = StyleSheet.create({
   },
   stateBadge: {
     position: "absolute",
-    top: 235,
+    top: 310,
     alignSelf: "center",
     paddingHorizontal: 18,
     paddingVertical: 8,

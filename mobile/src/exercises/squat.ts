@@ -54,18 +54,19 @@ export function updateSquat(
   let state = previousState;
   let nextRepetitions = repetitions;
 
-  if (kneeAngle > 160) {
+  if (kneeAngle > 150) {
     state = "standing";
-  } else if (kneeAngle > 120) {
-    state = "descending";
-  } else if (kneeAngle < 100) {
+  } else if (kneeAngle < 110) {
     state = "bottom";
-  } else if (kneeAngle < 140) {
+  } else if (previousState === "bottom" || previousState === "ascending") {
     state = "ascending";
+  } else {
+    state = "descending";
   }
 
-  if (previousState === "bottom" && state === "standing") {
+  if ((previousState === "bottom" || previousState === "ascending") && kneeAngle > 150) {
     nextRepetitions += 1;
+    state = "standing";
   }
 
   return { state, repetitions: nextRepetitions, kneeAngle };

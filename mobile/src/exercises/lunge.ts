@@ -22,11 +22,22 @@ export function updateLunge(
   const kneeAngle = Math.min(left, right);
 
   let state = previousState;
-  if (kneeAngle > 160) state = "standing";
-  else if (kneeAngle > 115) state = "descending";
-  else if (kneeAngle < 100) state = "bottom";
-  else if (kneeAngle < 140) state = "ascending";
+  let nextRepetitions = repetitions;
 
-  const next = previousState === "bottom" && state === "standing" ? repetitions + 1 : repetitions;
-  return { state, repetitions: next, primaryAngle: kneeAngle };
+  if (kneeAngle > 150) {
+    state = "standing";
+  } else if (kneeAngle < 115) {
+    state = "bottom";
+  } else if (previousState === "bottom" || previousState === "ascending") {
+    state = "ascending";
+  } else {
+    state = "descending";
+  }
+
+  if ((previousState === "bottom" || previousState === "ascending") && kneeAngle > 150) {
+    nextRepetitions += 1;
+    state = "standing";
+  }
+
+  return { state, repetitions: nextRepetitions, primaryAngle: kneeAngle };
 }
